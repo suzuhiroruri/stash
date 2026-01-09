@@ -193,6 +193,13 @@ func (qb *queryBuilder) addFilter(f *filterBuilder) error {
 	return nil
 }
 
+// shouldNormalizeColumn returns true if the column should be normalized to NFC.
+// BLOB columns (like files_fingerprints.fingerprint) should not be normalized.
+func shouldNormalizeColumn(column string) bool {
+	// fingerprint columns are BLOB type and should not be normalized
+	return !strings.Contains(column, ".fingerprint")
+}
+
 func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 	specs := models.ParseSearchString(q)
 
@@ -201,8 +208,13 @@ func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 
 		for _, column := range columns {
 			// Normalize both column and search term to NFC to handle macOS NFD file names
+			// Skip normalization for BLOB columns like files_fingerprints.fingerprint
 			// See https://github.com/stashapp/stash/issues/4425
-			clauses = append(clauses, "normalize_nfc("+column+") LIKE ?")
+			if shouldNormalizeColumn(column) {
+				clauses = append(clauses, "normalize_nfc("+column+") LIKE ?")
+			} else {
+				clauses = append(clauses, column+" LIKE ?")
+			}
 			qb.addArg(like(t))
 		}
 
@@ -212,7 +224,12 @@ func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 	for _, t := range specs.MustNot {
 		for _, column := range columns {
 			// Normalize both column and search term to NFC to handle macOS NFD file names
-			qb.addWhere("normalize_nfc(" + coalesce(column) + ") NOT LIKE ?")
+			// Skip normalization for BLOB columns
+			if shouldNormalizeColumn(column) {
+				qb.addWhere("normalize_nfc(" + coalesce(column) + ") NOT LIKE ?")
+			} else {
+				qb.addWhere(coalesce(column) + " NOT LIKE ?")
+			}
 			qb.addArg(like(t))
 		}
 	}
@@ -223,7 +240,12 @@ func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 		for _, column := range columns {
 			for _, v := range set {
 				// Normalize both column and search term to NFC to handle macOS NFD file names
-				clauses = append(clauses, "normalize_nfc("+column+") LIKE ?")
+				// Skip normalization for BLOB columns
+				if shouldNormalizeColumn(column) {
+					clauses = append(clauses, "normalize_nfc("+column+") LIKE ?")
+				} else {
+					clauses = append(clauses, column+" LIKE ?")
+				}
 				qb.addArg(like(v))
 			}
 		}
