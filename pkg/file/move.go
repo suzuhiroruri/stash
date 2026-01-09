@@ -8,12 +8,10 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-	"unicode/utf8"
 
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/txn"
-	"golang.org/x/text/unicode/norm"
 )
 
 type Renamer interface {

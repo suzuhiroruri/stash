@@ -6,11 +6,9 @@ import (
 	"fmt"
 	"path/filepath"
 	"time"
-	"unicode/utf8"
 
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/models/jsonschema"
-	"golang.org/x/text/unicode/norm"
 )
 
 var ErrZipFileNotExist = errors.New("zip file does not exist")
