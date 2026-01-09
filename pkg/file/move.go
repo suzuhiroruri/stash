@@ -8,10 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"unicode/utf8"
 
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/txn"
+	"golang.org/x/text/unicode/norm"
 )
 
 type Renamer interface {
@@ -92,7 +94,7 @@ func (m *Mover) Move(ctx context.Context, f models.File, folder *models.Folder, 
 	}
 
 	fBase.ParentFolderID = folder.ID
-	fBase.Basename = basename
+	fBase.Basename = normalizeBasename(basename)
 	fBase.UpdatedAt = time.Now()
 	// leave ModTime as is. It may or may not be changed by this operation
 

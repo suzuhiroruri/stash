@@ -4,6 +4,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"unicode/utf8"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 func durationToTinyIntFn(str string) (int64, error) {
@@ -34,4 +37,15 @@ func durationToTinyIntFn(str string) (int64, error) {
 
 func basenameFn(str string) (string, error) {
 	return filepath.Base(str), nil
+}
+
+// NormalizeNFC normalizes a string to NFC (Normalization Form Canonical Composition).
+// This is needed to handle macOS NFD (Normalization Form Decomposed) file names,
+// where combining characters like Japanese voiced marks are stored separately.
+// See https://github.com/stashapp/stash/issues/4425
+func NormalizeNFC(s string) string {
+	if !utf8.ValidString(s) {
+		return s
+	}
+	return norm.NFC.String(s)
 }

@@ -200,7 +200,9 @@ func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 		var clauses []string
 
 		for _, column := range columns {
-			clauses = append(clauses, column+" LIKE ?")
+			// Normalize both column and search term to NFC to handle macOS NFD file names
+			// See https://github.com/stashapp/stash/issues/4425
+			clauses = append(clauses, "normalize_nfc("+column+") LIKE ?")
 			qb.addArg(like(t))
 		}
 
@@ -209,7 +211,8 @@ func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 
 	for _, t := range specs.MustNot {
 		for _, column := range columns {
-			qb.addWhere(coalesce(column) + " NOT LIKE ?")
+			// Normalize both column and search term to NFC to handle macOS NFD file names
+			qb.addWhere("normalize_nfc(" + coalesce(column) + ") NOT LIKE ?")
 			qb.addArg(like(t))
 		}
 	}
@@ -219,7 +222,8 @@ func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 
 		for _, column := range columns {
 			for _, v := range set {
-				clauses = append(clauses, column+" LIKE ?")
+				// Normalize both column and search term to NFC to handle macOS NFD file names
+				clauses = append(clauses, "normalize_nfc("+column+") LIKE ?")
 				qb.addArg(like(v))
 			}
 		}

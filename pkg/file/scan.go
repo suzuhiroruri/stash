@@ -11,11 +11,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/txn"
+	"golang.org/x/text/unicode/norm"
 )
 
 const (
@@ -24,6 +26,17 @@ const (
 	// use -1 to retry forever
 	maxRetries = -1
 )
+
+// normalizeBasename normalizes a file basename to NFC (Normalization Form Canonical Composition).
+// This ensures consistency when storing file names from macOS, which uses NFD by default,
+// where combining characters like Japanese voiced marks are stored separately.
+// See https://github.com/stashapp/stash/issues/4425
+func normalizeBasename(basename string) string {
+	if !utf8.ValidString(basename) {
+		return basename
+	}
+	return norm.NFC.String(basename)
+}
 
 // Scanner scans files into the database.
 //
@@ -273,7 +286,7 @@ func (s *scanJob) queueFileFunc(ctx context.Context, f models.FS, zipFile *scanF
 					ModTime: modTime(info),
 				},
 				Path:     path,
-				Basename: filepath.Base(path),
+				Basename: normalizeBasename(filepath.Base(path)),
 				Size:     size,
 			},
 			fs:   f,

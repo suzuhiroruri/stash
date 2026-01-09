@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"path/filepath"
 	"time"
+	"unicode/utf8"
 
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/models/jsonschema"
+	"golang.org/x/text/unicode/norm"
 )
 
 var ErrZipFileNotExist = errors.New("zip file does not exist")
@@ -97,7 +99,7 @@ func (i *Importer) baseFileJSONToBaseFile(ctx context.Context, baseJSON *jsonsch
 		DirEntry: models.DirEntry{
 			ModTime: baseJSON.ModTime.GetTime(),
 		},
-		Basename:  filepath.Base(baseJSON.Path),
+		Basename:  normalizeBasename(filepath.Base(baseJSON.Path)),
 		Size:      baseJSON.Size,
 		CreatedAt: baseJSON.CreatedAt.GetTime(),
 		UpdatedAt: baseJSON.CreatedAt.GetTime(),

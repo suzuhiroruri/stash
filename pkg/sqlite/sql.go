@@ -360,7 +360,18 @@ func coalesce(column string) string {
 }
 
 func like(v string) string {
-	return "%" + v + "%"
+	// Normalize search query to NFC to handle macOS NFD file names
+	// See https://github.com/stashapp/stash/issues/4425
+	normalized := normalizeSearchTerm(v)
+	return "%" + normalized + "%"
+}
+
+// normalizeSearchTerm normalizes a search term to NFC format.
+// This ensures that search queries match file names stored in both
+// NFC and NFD formats (macOS uses NFD by default).
+func normalizeSearchTerm(s string) string {
+	// Use the same normalization function as the SQLite function
+	return NormalizeNFC(s)
 }
 
 type sqlTable string
