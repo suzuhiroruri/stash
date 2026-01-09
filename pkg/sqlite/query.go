@@ -200,6 +200,13 @@ func shouldNormalizeColumn(column string) bool {
 	return !strings.Contains(column, ".fingerprint")
 }
 
+// shouldIncludeColumnInSearch returns true if the column should be included in text search.
+// BLOB columns (like files_fingerprints.fingerprint) cannot be used with LIKE operator.
+func shouldIncludeColumnInSearch(column string) bool {
+	// fingerprint columns are BLOB type and cannot be used with LIKE
+	return !strings.Contains(column, ".fingerprint")
+}
+
 func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 	specs := models.ParseSearchString(q)
 
@@ -207,6 +214,10 @@ func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 		var clauses []string
 
 		for _, column := range columns {
+			// Skip BLOB columns (like files_fingerprints.fingerprint) as they cannot be used with LIKE
+			if !shouldIncludeColumnInSearch(column) {
+				continue
+			}
 			// Normalize both column and search term to NFC to handle macOS NFD file names
 			// Skip normalization for BLOB columns like files_fingerprints.fingerprint
 			// See https://github.com/stashapp/stash/issues/4425
@@ -218,11 +229,17 @@ func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 			qb.addArg(like(t))
 		}
 
-		qb.addWhere("(" + strings.Join(clauses, " OR ") + ")")
+		if len(clauses) > 0 {
+			qb.addWhere("(" + strings.Join(clauses, " OR ") + ")")
+		}
 	}
 
 	for _, t := range specs.MustNot {
 		for _, column := range columns {
+			// Skip BLOB columns (like files_fingerprints.fingerprint) as they cannot be used with LIKE
+			if !shouldIncludeColumnInSearch(column) {
+				continue
+			}
 			// Normalize both column and search term to NFC to handle macOS NFD file names
 			// Skip normalization for BLOB columns
 			if shouldNormalizeColumn(column) {
@@ -238,6 +255,10 @@ func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 		var clauses []string
 
 		for _, column := range columns {
+			// Skip BLOB columns (like files_fingerprints.fingerprint) as they cannot be used with LIKE
+			if !shouldIncludeColumnInSearch(column) {
+				continue
+			}
 			for _, v := range set {
 				// Normalize both column and search term to NFC to handle macOS NFD file names
 				// Skip normalization for BLOB columns
@@ -250,6 +271,8 @@ func (qb *queryBuilder) parseQueryString(columns []string, q string) {
 			}
 		}
 
-		qb.addWhere("(" + strings.Join(clauses, " OR ") + ")")
+		if len(clauses) > 0 {
+			qb.addWhere("(" + strings.Join(clauses, " OR ") + ")")
+		}
 	}
 }
